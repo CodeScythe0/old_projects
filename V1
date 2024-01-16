@@ -1,0 +1,60 @@
+import cv2
+import numpy as np
+
+# Load the image
+image = cv2.imread('23-49-57.bmp')
+
+# Convert the image to grayscale
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+# Apply thresholding to the image
+ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+
+# Find contours in the image
+contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+
+# Find the contour with the largest area
+max_area = 0
+max_contour = None
+for contour in contours:
+    area = cv2.contourArea(contour)
+    if area > max_area:
+        max_area = area
+        max_contour = contour
+
+# Find the center of the largest contour
+moments = cv2.moments(max_contour)
+if moments['m00'] != 0:
+    cx = int(moments['m10']/moments['m00'])
+    cy = int(moments['m01']/moments['m00'])
+else:
+    cx, cy = 0, 0
+
+# Assign the center of the largest contour as the origin
+origin = (cx, cy)
+
+# Create a GUI that allows the user to select smaller objects
+def on_mouse(event, x, y, flags, params):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        # Find the contour that was clicked
+        for contour in contours:
+            if cv2.pointPolygonTest(contour, (x, y), False) >= 0:
+                # Find the center of the contour
+                moments = cv2.moments(contour)
+                if moments['m00'] != 0:
+                    cx = int(moments['m10']/moments['m00'])
+                    cy = int(moments['m01']/moments['m00'])
+                else:
+                    cx, cy = 0, 0
+                # Print the coordinates of the center with respect to the origin
+                print((cx - origin[0], cy - origin[1]))
+
+cv2.namedWindow('image')
+cv2.setMouseCallback('image', on_mouse)
+
+while True:
+    cv2.imshow('image', image)
+    if cv2.waitKey(1) == 27:
+        break
+
+cv2.destroyAllWindows()
